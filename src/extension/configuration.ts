@@ -32,3 +32,8 @@ export function getDefaultBazelExecutablePath(): string {
   }
   return bazelExecutable;
 }
+
+export function getDefaultQueryExpression(): string {
+  return vscode.workspace.getConfiguration("bazel.commandLine")
+      .get<string>("queryExpression") ?? "...:*";
+}
