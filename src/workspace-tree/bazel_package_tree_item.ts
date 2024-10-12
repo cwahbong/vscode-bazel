@@ -14,15 +14,11 @@
 
 import * as vscode from "vscode";
 import { BazelWorkspaceInfo } from "../bazel";
-import {
-  BazelQuery,
-  IBazelCommandAdapter,
-  IBazelCommandOptions,
-} from "../bazel";
-import { getDefaultBazelExecutablePath } from "../extension/configuration";
+import { IBazelCommandAdapter, IBazelCommandOptions } from "../bazel";
 import { blaze_query } from "../protos";
 import { BazelTargetTreeItem } from "./bazel_target_tree_item";
 import { IBazelTreeItem } from "./bazel_tree_item";
+import { IBazelQuerier } from "./querier";
 
 /** A tree item representing a build package. */
 export class BazelPackageTreeItem
@@ -32,7 +28,7 @@ export class BazelPackageTreeItem
    * The array of subpackages that should be shown directly under this package
    * item.
    */
-  public directSubpackages: BazelPackageTreeItem[] = [];
+  public directSubpackages: IBazelTreeItem[] = [];
 
   /**
    * Initializes a new tree item with the given workspace path and package path.
@@ -44,6 +40,7 @@ export class BazelPackageTreeItem
    * {@code packagePath} should be stripped for the item's label.
    */
   constructor(
+    private readonly querier: IBazelQuerier,
     private readonly workspaceInfo: BazelWorkspaceInfo,
     private readonly packagePath: string,
     private readonly parentPackagePath: string,
@@ -54,17 +51,14 @@ export class BazelPackageTreeItem
   }
 
   public async getChildren(): Promise<IBazelTreeItem[]> {
-    const queryResult = await new BazelQuery(
-      getDefaultBazelExecutablePath(),
-      this.workspaceInfo.bazelWorkspacePath,
-    ).queryTargets(`//${this.packagePath}:all`, {
-      ignoresErrors: true,
-      sortByRuleName: true,
-    });
+    const queryResult = await this.querier.queryChildrenTargets(
+      this.workspaceInfo,
+      this.packagePath,
+    );
     const targets = queryResult.target.map((target: blaze_query.ITarget) => {
       return new BazelTargetTreeItem(this.workspaceInfo, target);
     });
-    return (this.directSubpackages as IBazelTreeItem[]).concat(targets);
+    return this.directSubpackages.concat(targets);
   }
 
   public getLabel(): string {
