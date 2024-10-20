@@ -33,6 +33,7 @@ export class BazelPackageTreeItem
   /**
    * Initializes a new tree item with the given workspace path and package path.
    *
+   * @param querier Querier for getting information inside a Bazel workspace.
    * @param workspacePath The path to the VS Code workspace folder.
    * @param packagePath The path to the build package that this item represents.
    * @param parentPackagePath The path to the build package of the tree item
@@ -43,7 +44,7 @@ export class BazelPackageTreeItem
     private readonly querier: IBazelQuerier,
     private readonly workspaceInfo: BazelWorkspaceInfo,
     private readonly packagePath: string,
-    private readonly parentPackagePath: string,
+    private readonly parentPackagePath?: string,
   ) {}
 
   public mightHaveChildren(): boolean {
@@ -62,14 +63,23 @@ export class BazelPackageTreeItem
   }
 
   public getLabel(): string {
-    // If this is a top-level package, include the leading double-slash on the
-    // label.
-    if (this.parentPackagePath.length === 0) {
-      return `//${this.packagePath}`;
+    if (this.parentPackagePath === undefined) {
+      return this.packagePath;
     }
-    // Otherwise, strip off the part of the package path that came from the
-    // parent item (along with the slash).
-    return this.packagePath.substring(this.parentPackagePath.length + 1);
+    // Strip off the part of the package path that came from the
+    // parent item.
+    const parentLength = this.parentPackagePath.length;
+    // (null)
+    // //a
+    //
+    // @repo//foo
+    // @repo//foo/bar
+    //
+    // @repo//
+    // @repo//foo
+    const diffIsLeadingSlash = this.packagePath[parentLength] === "/";
+    const prefixLength = diffIsLeadingSlash ? parentLength + 1 : parentLength;
+    return this.packagePath.substring(prefixLength);
   }
 
   public getIcon(): vscode.ThemeIcon {
@@ -77,11 +87,11 @@ export class BazelPackageTreeItem
   }
 
   public getTooltip(): string {
-    return `//${this.packagePath}`;
+    return this.packagePath;
   }
 
-  public getCommand(): vscode.Command | undefined {
-    return undefined;
+  public getCommand(): Thenable<vscode.Command | undefined> {
+    return Promise.resolve(undefined);
   }
 
   public getContextValue(): string {
@@ -91,7 +101,7 @@ export class BazelPackageTreeItem
   public getBazelCommandOptions(): IBazelCommandOptions {
     return {
       options: [],
-      targets: [`//${this.packagePath}`],
+      targets: [this.packagePath],
       workspaceInfo: this.workspaceInfo,
     };
   }
