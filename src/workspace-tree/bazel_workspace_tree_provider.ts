@@ -31,7 +31,7 @@ export class BazelWorkspaceTreeProvider
   public readonly onDidChangeTreeData = this.onDidChangeTreeDataEmitter.event;
 
   /** The cached toplevel items. */
-  private workspaceFolderTreeItems: BazelWorkspaceFolderTreeItem[] | undefined;
+  private workspaceFolderTreeItems: IBazelTreeItem[] | undefined;
 
   private disposables: vscode.Disposable[] = [];
 
@@ -91,7 +91,7 @@ export class BazelWorkspaceTreeProvider
     return Promise.resolve([]);
   }
 
-  public getTreeItem(element: IBazelTreeItem): vscode.TreeItem {
+  public async getTreeItem(element: IBazelTreeItem): Promise<vscode.TreeItem> {
     const label = element.getLabel();
     const collapsibleState = element.mightHaveChildren()
       ? vscode.TreeItemCollapsibleState.Collapsed
@@ -101,7 +101,7 @@ export class BazelWorkspaceTreeProvider
     treeItem.contextValue = element.getContextValue();
     treeItem.iconPath = element.getIcon();
     treeItem.tooltip = element.getTooltip();
-    treeItem.command = element.getCommand();
+    treeItem.command = await element.getCommand();
     return treeItem;
   }
 
