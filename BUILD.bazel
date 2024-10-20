@@ -1,0 +1,66 @@
+load("@aspect_bazel_lib//lib:directory_path.bzl", "directory_path")
+load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
+load("@npm//:defs.bzl", "npm_link_all_packages")
+load("@npm//:defs.bzl", "npm_link_all_packages")
+
+npm_link_all_packages(name = "node_modules")
+
+
+js_binary(
+  name = "esbuild",
+  data = ["//:node_modules/esbuild"],
+  entry_point = "esbuild.js",
+)
+
+# genrule(
+#   name = "dist_pb_js",
+#   cmd = "",
+# )
+
+directory_path(
+  name = "pbts_entry_point",
+  directory = "//:node_modules/protobufjs/dir",
+  path = "bin/pbts",
+)
+
+js_binary(
+  name = "pbts",
+  entry_point = ":pbts_entry_point",
+  data = ["//:node_modules/protobufjs"],
+)
+
+js_run_binary(
+  name = "dist_pb_ts",
+  srcs = ["src/protos/protos.d.ts"],
+  outs = ["protos.js"],
+  args = ["-o $@", "src/protos/protos.d.ts"],
+  tool = ":pbts",
+)
+
+# genrule(
+#   name = "dist_syntaxes_json",
+# )
+# 
+# esbuild(
+#   name = "extension.js",
+#   srcs = glob([])
+# )
+
+# genrule(
+#   name = "vsci",
+#   cmd = "npm exec vsce package",
+#   srcs = [
+#     "package.json",
+#     "LICENSE",
+#     "README.md",
+#   ] + glob([
+#     "icons/**",
+#     "media/**",
+#     "syntaxes/**",
+#   ]),
+#   # deps = [
+#   #   "dist_extension_js",
+#   #   "dist_syntaxes_json",
+#   # ],
+#   outs = ["vscode-bazel-0.10.0.vsix"],
+# )
